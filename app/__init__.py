@@ -27,7 +27,7 @@ def _is_vercel_runtime() -> bool:
 
 def _normalize_database_url(url: str) -> str:
     if url.startswith("postgres://"):
-        return "postgresql://" + url[len("postgres://") :]
+        return url.replace("postgres://", "postgresql://", 1)
     return url
 
 
@@ -50,9 +50,9 @@ def create_app(config: dict | None = None) -> Flask:
     instance_dir.mkdir(parents=True, exist_ok=True)
     upload_dir.mkdir(parents=True, exist_ok=True)
     database_url = os.environ.get("DATABASE_URL")
-    resolved_database_url = _normalize_database_url(database_url) if database_url else (
-        f"sqlite:///{instance_dir / SQLITE_DB_NAME}"
-    )
+    resolved_database_url = f"sqlite:///{instance_dir / SQLITE_DB_NAME}"
+    if database_url:
+        resolved_database_url = _normalize_database_url(database_url)
 
     app.config.update(
         SECRET_KEY=os.environ.get("SECRET_KEY", "dev-secret-change-me"),
