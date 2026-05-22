@@ -17,23 +17,46 @@ from flask import Flask
 
 from .extensions import db
 
+DEFAULT_TMP_DIR = "/tmp"
+SQLITE_DB_NAME = "photo_editor.sqlite3"
+
+
+def _is_vercel_runtime() -> bool:
+    return os.environ.get("VERCEL") == "1" or bool(os.environ.get("VERCEL_ENV"))
+
+
+def _normalize_database_url(url: str) -> str:
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
+
 
 def create_app(config: dict | None = None) -> Flask:
-    app = Flask(__name__, instance_relative_config=True)
+    is_vercel = _is_vercel_runtime()
+    if is_vercel:
+        writable_root = Path(os.environ.get("VERCEL_TMPDIR", DEFAULT_TMP_DIR))
+        instance_path = writable_root / "patrones4_instance"
+        upload_dir = writable_root / "patrones4_uploads"
+        app = Flask(
+            __name__,
+            instance_relative_config=True,
+            instance_path=str(instance_path),
+        )
+    else:
+        app = Flask(__name__, instance_relative_config=True)
+        upload_dir = Path(app.root_path) / "static" / "uploads"
 
-    base_dir = Path(app.root_path).parent
     instance_dir = Path(app.instance_path)
     instance_dir.mkdir(parents=True, exist_ok=True)
-
-    upload_dir = Path(app.root_path) / "static" / "uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
+    database_url = os.environ.get("DATABASE_URL")
+    resolved_database_url = f"sqlite:///{instance_dir / SQLITE_DB_NAME}"
+    if database_url:
+        resolved_database_url = _normalize_database_url(database_url)
 
     app.config.update(
         SECRET_KEY=os.environ.get("SECRET_KEY", "dev-secret-change-me"),
-        SQLALCHEMY_DATABASE_URI=os.environ.get(
-            "DATABASE_URL",
-            f"sqlite:///{instance_dir / 'photo_editor.sqlite3'}",
-        ),
+        SQLALCHEMY_DATABASE_URI=resolved_database_url,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         UPLOAD_FOLDER=str(upload_dir),
         MAX_CONTENT_LENGTH=16 * 1024 * 1024,

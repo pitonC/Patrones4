@@ -2,8 +2,8 @@
 
 Este repositorio ya contiene la configuración mínima para que Vercel detecte y arranque la aplicación Flask:
 
-- `pyproject.toml` con `tool.vercel.entrypoint = "run:app"` (entrypoint WSGI).
 - `vercel.json` con `@vercel/python` como builder y `run.py` como destino.
+- `run.py` exportando `app` para el runtime de Vercel.
 
 Pasos recomendados para desplegar en Vercel (UI o CLI):
 
@@ -15,9 +15,7 @@ Pasos recomendados para desplegar en Vercel (UI o CLI):
 
 Limitaciones importantes (leer antes de desplegar):
 
-- Persistencia de disco: Vercel funciona en entornos serverless — el disco local no es persistente entre invocaciones y no está pensado para almacenar archivos subidos ni bases de datos SQLite en producción. En este repositorio la app usa por defecto:
-  - `instance/photo_editor.sqlite3` (SQLite) — NO persistirá correctamente en Vercel.
-  - `app/static/uploads/` para imágenes subidas — NO persistirá.
+- Persistencia de disco: Vercel funciona en entornos serverless — el disco local no es persistente entre invocaciones. En este repositorio, dentro de Vercel se usan rutas temporales en `/tmp` para evitar fallos de escritura al arrancar (`instance` y `uploads`), pero su contenido sigue siendo efímero.
 
 Recomendaciones para producción en Vercel:
 
